@@ -40,7 +40,7 @@ const Dashboard = ({userRole}) => {
                 <CardTitle>Current Energy Stored</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{currentEnergyStored} kWh</div>
+                <div className="text-2xl font-bold text-green-500">{currentEnergyStored} kWh</div>
               </CardContent>
             </Card>
           )
@@ -50,7 +50,7 @@ const Dashboard = ({userRole}) => {
             <CardTitle>Total Energy Traded</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">124,567 MWh</div>
+            <div className="text-2xl font-bold text-green-500">124,567 MWh</div>
           </CardContent>
         </Card>
         <Card>
@@ -58,7 +58,7 @@ const Dashboard = ({userRole}) => {
             <CardTitle>Current Market Price</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">$85.42/MWh</div>
+            <div className="text-2xl font-bold text-green-500">$85.42/MWh</div>
           </CardContent>
         </Card>
         <Card>
@@ -66,11 +66,10 @@ const Dashboard = ({userRole}) => {
             <CardTitle>Active Contracts</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">42</div>
+            <div className="text-2xl font-bold text-green-500">42</div>
           </CardContent>
         </Card>
       </div>
-      <RetentionHeatmap />
     </div>
   );
 };

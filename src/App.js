@@ -7,6 +7,8 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Marketplace from "./components/Marketplace";
+import MyPosts from "./components/MyPosts";
+import MyBids from "./components/MyBids";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(true);
@@ -41,7 +43,8 @@ function App() {
     <Router>
       <div style={{ paddingTop: "64px", height: "100vh" }}>
         {/* <button onClick={contactServer}>Contact Server</button> */}
-        <Navbar isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated}/>
+        <Navbar userRole={userRole} isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated}/>
+        <div style={{ maxWidth: 1200 }} className="container mx-auto px-4">
         <Routes>
           <Route
             path="/"
@@ -70,7 +73,26 @@ function App() {
             <Marketplace userRole={userRole} /> : 
             <Navigate to="/login" />
           } />
+
+          {
+            userRole === 'prosumer' && (
+              <Route path="/my-posts" element={
+                <MyPosts />
+              }
+              />
+            )
+          }
+
+          {
+            userRole === 'consumer' && (
+              <Route path="/my-bids" element={
+                <MyBids />
+              }
+              />
+            )
+          }
         </Routes>
+        </div>
       </div>
     </Router>
   );

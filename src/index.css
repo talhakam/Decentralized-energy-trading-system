@@ -9,9 +9,49 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: rgb(0, 0, 0);
+  color: white;
+  
+  font-family: "Raleway", serif;
+  font-optical-sizing: auto;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+}
+
+.bg-card {
+  background-color: rgb(22, 22, 22);
+  border: none;
+  border-radius: 1rem;
+}
+
+.from-blue-8002 {
+  background-color: rgb(0, 0, 40);
+}
+
+textarea {
+  border-radius: 1rem !important;
+  background-color: rgb(22, 22, 22);
+}
+
+input {
+  border-radius: 100rem !important;
+  background-color: rgb(22, 22, 22);
+}
+
+button {
+  border-radius: 100rem !important;
+  width: min-content !important;
+  min-width: 200px !important;
+}
+
+.form {
+  background-color: rgb(22, 22, 22);
+  border: none;
+  border-radius: 1rem;
+}
+
+table {
 }

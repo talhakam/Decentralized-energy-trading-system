@@ -4,11 +4,11 @@ import axios from 'axios';
 // OfferCard Component to display individual offer details
 const OfferCard = ({ offer }) => {
   return (
-    <div className="border p-4 rounded-lg mb-4 shadow-md">
+    <div className="bg-card border p-4 rounded-lg mb-4 shadow-md">
       <h3 className="text-xl font-bold">{offer.title}</h3>
-      <p className="text-gray-700">{offer.description}</p>
-      <p className="text-green-600">Price: ${offer.pricePerMwh} / MWh</p>
-      <p className="text-blue-600">Energy Available: {offer.energyAvailable} kWh</p>
+      <p className="">{offer.description}</p>
+      <p className="">Price: ${offer.pricePerMwh} / MWh</p>
+      <p className="">Energy Available: {offer.energyAvailable} kWh</p>
     </div>
   );
 };
@@ -44,7 +44,7 @@ const PostOffer = ({ onPost }) => {
   };
 
   return (
-    <form onSubmit={handlePost} className="space-y-4 p-6 border rounded-lg shadow-md">
+    <form onSubmit={handlePost} style={{maxWidth: 500}} className="form space-y-4 p-6 border rounded-lg shadow-md">
       <h2 className="text-xl font-bold">Post a New Energy Offer</h2>
       <input
         type="text"
@@ -77,7 +77,7 @@ const PostOffer = ({ onPost }) => {
         className="w-full p-2 border rounded-md"
         required
       />
-      <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded-md">
+      <button type="submit" style={{fontWeight: 500}} className="w-full bg-green-600 text-white p-2 rounded-md">
         Post Offer
       </button>
     </form>

@@ -7,7 +7,7 @@ const Welcome = () => {
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl w-full">
         {/* Welcome Section */}
         <div className="flex flex-col justify-center space-y-6 text-gray-800">
-          <h1 className="text-4xl font-bold text-indigo-900">Welcome to EnergySync</h1>
+          <h1 className="text-4xl font-bold text-indigo-900">Welcome to Solaris</h1>
           <p className="text-lg text-gray-600">
             Revolutionizing energy trading through a secure, transparent, and efficient marketplace.
           </p>

@@ -3,15 +3,15 @@ import { Home, User, LogIn, Building, FileText, Menu } from "lucide-react";
 import { Button } from "./ui/button";
 import { Link } from "react-router-dom";
 
-const Navbar = ({ isAuthenticated, setIsAuthenticated }) => {
+const Navbar = ({ userRole, isAuthenticated, setIsAuthenticated }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <nav className="fixed top-0 left-0 w-full bg-gradient-to-r from-blue-800 to-indigo-900 text-white shadow-lg z-50">
+    <nav className="navbar fixed top-0 left-0 w-full bg-gradient-to-r from-green-800 bg-black text-white shadow-lg z-50">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <div className="flex items-center space-x-6">
           <Link to="/">
-            <div className="text-2xl font-bold tracking-wider">EnergySync</div>
+            <div className="text-2xl font-bold tracking-wider">Solaris</div>
           </Link>
           {/* Desktop Navigation */}
           {isAuthenticated && (
@@ -25,6 +25,20 @@ const Navbar = ({ isAuthenticated, setIsAuthenticated }) => {
               <Link to={"/reports"}>
               <NavLink icon={<FileText size={18} />} text="Reports" />
               </Link>
+              {
+                userRole === "prosumer" && (
+                  <Link to={"/my-posts"}>
+                  <NavLink icon={<FileText size={18} />} text="My Posts" />
+                  </Link>
+                )
+              }
+              {
+                userRole === "consumer" && (
+                  <Link to={"/my-bids"}>
+                  <NavLink icon={<FileText size={18} />} text="My Bids" />
+                  </Link>
+                )
+              }
             </div>
           )}
         </div>
@@ -77,7 +91,7 @@ const Navbar = ({ isAuthenticated, setIsAuthenticated }) => {
 
       {/* Mobile Menu */}
       {isMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full bg-gradient-to-r from-blue-800 to-indigo-900">
+        <div className="md:hidden absolute top-full left-0 w-full bg-gradient-to-r from-blue-8002 to-indigo-900">
           <div className="flex flex-col space-y-2 p-4">
             <MobileNavLink icon={<Home size={18} />} text="Dashboard" />
             <MobileNavLink icon={<Building size={18} />} text="Marketplace" />
