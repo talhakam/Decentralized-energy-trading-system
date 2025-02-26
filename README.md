@@ -39,7 +39,7 @@ The project is built using **React.js**, **Solidity**, and **Web3.js** and runs 
 
 ### **Backend**  
 - **Node.js & Express.js** – Server-side logic.  
-- **MongoDB** – (Optional) For storing user data.  
+- **Fiebase** – For storing user data.  
 
 ### **Blockchain**  
 - **Ethereum Private Network (Geth)** – For decentralized transactions.  
