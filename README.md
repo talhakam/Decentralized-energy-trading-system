@@ -54,57 +54,49 @@ The project is built using **React.js**, **Solidity**, and **Web3.js** and runs 
 ```bash
 git clone https://github.com/talhakam/Decentralized-energy-trading-system.git
 cd Decentralized-energy-trading-system
-
+```
 2️⃣ Install Dependencies
 Make sure you have Node.js installed. Then, run:
 
-bash
-Copy
-Edit
+```bash
 npm install
+```
 3️⃣ Start the Ethereum Private Network (Geth)
 Set up a private blockchain using Geth:
 
-bash
-Copy
-Edit
+
+```bash
 geth --datadir ./data init genesis.json
 geth --datadir ./data --networkid 1234 --http --http.api eth,net,web3,personal,miner
+```
 4️⃣ Deploy Smart Contracts (Using Truffle)
 Compile and migrate the contracts to the private blockchain:
 
-bash
-Copy
-Edit
+
+```bash
 truffle compile
 truffle migrate --network development
+```
 5️⃣ Run the Frontend (React App)
-bash
-Copy
-Edit
+
+```bash
 npm start
+```
 The application will be available at http://localhost:3000.
 
-📝 How It Works
-1️⃣ Users Connect MetaMask – They log in and authorize transactions via MetaMask.
-2️⃣ Energy Providers List Energy – Producers upload energy availability.
-3️⃣ Smart Contracts Execute Trades – Buyers purchase energy directly from sellers.
-4️⃣ Blockchain Records Transactions – Ensures transparency and security.
+# 📝 How It Works
+1️⃣ **Users Connect MetaMask** – They log in and authorize transactions via MetaMask.
+2️⃣ **Energy Providers List Energy** – Producers upload energy availability.
+3️⃣ **Smart Contracts Execute Trades** – Buyers purchase energy directly from sellers.
+4️⃣ **Blockchain Records Transactions** – Ensures transparency and security.
 
-👨‍💻 Contributing
-Want to improve this project? Follow these steps:
 
-Fork the repository
-Create a feature branch (git checkout -b feature-name)
-Commit changes (git commit -m "Added new feature")
-Push to GitHub (git push origin feature-name)
-Create a pull request
-📧 Contact
+# 📧 Contact
 For questions, feedback, or collaboration opportunities, reach out to:
 
-📩 Email: your-email@example.com
+📩 Email: mkamran.bee21seecs@seecs.edu.pk
 🌍 GitHub: talhakam
 
 🚀 Built with ❤️ for a Sustainable Future!
-📜 License
+# 📜 License
 This project is open-source under the MIT License.
