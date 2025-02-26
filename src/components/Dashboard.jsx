@@ -50,7 +50,7 @@ const Dashboard = ({userRole}) => {
             <CardTitle>Total Energy Traded</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">124,567 MWh</div>
+            <div className="text-2xl font-bold text-green-500">124.567 kWh</div>
           </CardContent>
         </Card>
         <Card>
@@ -58,15 +58,15 @@ const Dashboard = ({userRole}) => {
             <CardTitle>Current Market Price</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">$85.42/MWh</div>
+            <div className="text-2xl font-bold text-green-500">PKR 15.42/Wh</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Active Contracts</CardTitle>
+            <CardTitle>Active Posts</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-500">42</div>
+            <div className="text-2xl font-bold text-green-500">0</div>
           </CardContent>
         </Card>
       </div>

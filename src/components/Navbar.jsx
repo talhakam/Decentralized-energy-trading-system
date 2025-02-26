@@ -115,23 +115,23 @@ const Navbar = ({ userRole, isAuthenticated, setIsAuthenticated }) => {
 };
 
 const NavLink = ({ icon, text }) => (
-  <a
+  <span
     href="#"
     className="flex items-center space-x-2 hover:text-emerald-300 transition-colors"
   >
     {icon}
     <span>{text}</span>
-  </a>
+  </span>
 );
 
 const MobileNavLink = ({ icon, text }) => (
-  <a
+  <span
     href="#"
     className="flex items-center space-x-4 p-3 hover:bg-white/10 rounded-md transition-colors"
   >
     {icon}
     <span>{text}</span>
-  </a>
+  </span>
 );
 
 export default Navbar;

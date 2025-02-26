@@ -3,7 +3,7 @@ import { ShieldCheck, UserCheck } from 'lucide-react';
 
 const Welcome = () => {
   return (
-    <div style={{ height: "100%" }} className="bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
+    <div style={{ height: "100%" }} className="bg-gradient-to-br to-indigo-100 flex items-center justify-center px-4">
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl w-full">
         {/* Welcome Section */}
         <div className="flex flex-col justify-center space-y-6 text-gray-800">
