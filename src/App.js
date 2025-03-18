@@ -9,89 +9,144 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Marketplace from "./components/Marketplace";
 import MyPosts from "./components/MyPosts";
 import MyBids from "./components/MyBids";
+import Web3 from 'web3';
+const EnergyTradingABI = require('./components/EnergyTradingABI.json');
+
+const CONTRACT_ADDRESS = process.env.REACT_APP_SMART_CONTRACT_ADDRESS;
+
+
+// Define Role enum to match smart contract
+const Role = {
+  None: 0,
+  Prosumer: 1,
+  Consumer: 2
+};
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [userRole, setUserRole] = useState('prosumer');
-  console.log(userRole);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('token') === 'true';
+  });
+  const [userRole, setUserRole] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  // Remove unused currentAccount state
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      setIsAuthenticated(true);
-    } else {
+    const fetchUserRole = async () => {
+      if (!window.ethereum || !isAuthenticated) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const web3 = new Web3(window.ethereum);
+        const accounts = await web3.eth.getAccounts();
+        const currentAccount = accounts[0];
+
+        // If account changed, clear previous role
+        if (currentAccount !== localStorage.getItem('userAddress')) {
+          console.log('Account changed, clearing previous role');
+          localStorage.removeItem('userRole');
+          setUserRole(null);
+        }
+
+        const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+        const userInfo = await contract.methods.users(currentAccount).call();
+        const roleNumber = Number(userInfo.role);
+        
+        console.log('Account:', currentAccount);
+        console.log('Role from contract:', roleNumber);
+        
+        setUserRole(roleNumber);
+        localStorage.setItem('userRole', roleNumber.toString());
+        localStorage.setItem('userAddress', currentAccount);
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+        setUserRole(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, [isAuthenticated]);
+
+  // Add MetaMask account change listener
+  useEffect(() => {
+    const handleAccountsChanged = () => {
+      console.log('MetaMask account changed');
+      localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userAddress');
       setIsAuthenticated(false);
+      setUserRole(null);
+    };
+
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
     }
+
+    return () => {
+      if (window.ethereum && window.ethereum.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      }
+    };
   }, []);
 
-  // useEffect(() => {
-  //   if (isAuthenticated) {
-  //     localStorage.setItem("token", "true");
-  //   } else {
-  //     localStorage.removeItem("token");
-  //   }
-  // }, [isAuthenticated]);
 
-  // const contactServer = () => {
-  //   fetch("http://localhost:5000/")
-  //     .then((response) => response.json())
-  //     .then((data) => console.log(data))
-  //     .catch((error) => console.error(error));
-  // };
+  if (loading) {
+    return <div>Loading...</div>; // Add proper loading component
+  }
 
   return (
     <Router>
       <div style={{ paddingTop: "64px", height: "100vh" }}>
-        {/* <button onClick={contactServer}>Contact Server</button> */}
         <Navbar userRole={userRole} isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated}/>
         <div style={{ maxWidth: 1200 }} className="container mx-auto px-4">
-        <Routes>
-          <Route
-            path="/"
-            element={isAuthenticated ? <Navigate to="/dashboard" /> : <Welcome />}
-          />
-          <Route
-            path="/login"
-            element={<Login setIsAuthenticated={setIsAuthenticated} />}
-          />
-          <Route path="/register" element={<Register setIsAuthenticated={setIsAuthenticated}/>} />
-          <Route
-            path="/dashboard"
-            element={
-              isAuthenticated ? (
-                <>
-                  <Dashboard userRole={userRole} />
-                <EnergyTradingDapp setUserRole={setUserRole} userRole={userRole}/>
-                </>
-              ) : (
-                <Navigate to="/login" />
+          <Routes>
+            <Route
+              path="/"
+              element={<Welcome />}
+            />
+            <Route
+              path="/login"
+              element={<Login setIsAuthenticated={setIsAuthenticated} />}
+            />
+            <Route path="/register" element={<Register setIsAuthenticated={setIsAuthenticated}/>} />
+            <Route
+              path="/dashboard"
+              element={
+                isAuthenticated ? (
+                  <>
+                    <Dashboard userRole={userRole} />
+                    <EnergyTradingDapp setUserRole={setUserRole} userRole={userRole}/>
+                  </>
+                ) : (
+                  <Navigate to="/login" />
+                )
+              }
+            />
+            <Route path="/marketplace" element={
+              isAuthenticated ?
+              <Marketplace userRole={userRole} /> : 
+              <Navigate to="/login" />
+            } />
+
+{
+              userRole === Role.Prosumer && (
+                <Route path="/my-posts" element={
+                  <MyPosts />
+                }/>
               )
             }
-          />
-          <Route path="/marketplace" element={
-            isAuthenticated ?
-            <Marketplace userRole={userRole} /> : 
-            <Navigate to="/login" />
-          } />
 
-          {
-            userRole === 'prosumer' && (
-              <Route path="/my-posts" element={
-                <MyPosts />
-              }
-              />
-            )
-          }
-
-          {
-            userRole === 'consumer' && (
-              <Route path="/my-bids" element={
-                <MyBids />
-              }
-              />
-            )
-          }
-        </Routes>
+            {
+              userRole === Role.Consumer && (
+                <Route path="/my-bids" element={
+                  <MyBids />
+                }/>
+              )
+            }
+          </Routes>
         </div>
       </div>
     </Router>

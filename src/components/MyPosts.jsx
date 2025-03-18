@@ -3,142 +3,147 @@ import Web3 from 'web3';
 import EditOffer from './EditOffer';
 import EnergyTradingABI from './EnergyTradingABI.json'; // Import your ABI file
 
-const CONTRACT_ADDRESS = '0x0884b03ef2885919327F0F77Eb36044B549501bf';
+const CONTRACT_ADDRESS = process.env.REACT_APP_SMART_CONTRACT_ADDRESS;
 
 const MyPosts = () => {
   const [myOffers, setMyOffers] = useState([]);
   const [editingOffer, setEditingOffer] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [currentAccount, setCurrentAccount] = useState(null);
 
   useEffect(() => {
-    
     const fetchMyPosts = async () => {
       if (!window.ethereum) {
         alert("Please install MetaMask!");
         return;
       }
-    
+
       const web3 = new Web3(window.ethereum);
       await window.ethereum.request({ method: "eth_requestAccounts" });
       const accounts = await web3.eth.getAccounts();
-      setCurrentAccount(accounts[0]); // Store the current account
-    
+
       const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
-    
+
       try {
         setLoading(true);
-    
-        // Call the Solidity function with the current user's address
+
         const myPosts = await contract.methods.getMyPosts(accounts[0]).call();
-    
-        console.log("Raw myPosts response:", myPosts); // Debugging log
-    
-        // Ensure the response is an array before proceeding
-        if (!Array.isArray(myPosts)) {
-          console.error("Unexpected response from getMyPosts:", myPosts);
-          setMyOffers([]);
-          return;
-        }
-    
-        // Map each post to a structured object
-        const formattedPosts = myPosts.map((post, index) => ({
-          id: Number(post[0]), // Convert BigInt to Number
-          prosumer: post[1], // Prosumer address
-          energyAvailable: Number(post[2]), // Convert BigInt to Number
-          pricePerMwh: web3.utils.fromWei(post[3].toString(), "ether"), // Convert from Wei
-          status: post[10] ? "Finalized" : "Active", // Boolean -> "Finalized" or "Active"
+
+        const formattedPosts = myPosts.map((post) => ({
+          id: Number(post.id),
+          prosumer: post.prosumer,
+          energyAvailable: Number(post.energyAmount),
+          pricePerMwh: web3.utils.fromWei(post.minPrice.toString(), "ether"),
+          auctionEnd: Number(post.auctionEnd),
+          status: mapTradeStatus(post.status, Number(post.auctionEnd)), // Pass auctionEnd to mapTradeStatus
         }));
-    
+
         setMyOffers(formattedPosts);
       } catch (error) {
         console.error("Error fetching my posts:", error);
-        setMyOffers([]); // Reset UI to prevent crashes
+        setMyOffers([]);
       } finally {
         setLoading(false);
       }
     };
-    
-    
+
     fetchMyPosts();
   }, []);
 
+  // Helper function to map TradeStatus enum to human-readable status
+  const mapTradeStatus = (status, auctionEnd) => {
+    const currentTime = Date.now() / 1000; // Current time in seconds
+  if (Number(status) === 0 && auctionEnd <= currentTime) {
+    return "Expired"; // Override "Active" status if auction has ended
+  }
+
+    switch (Number(status)) {
+      case 0:
+        return "Active";
+      case 1:
+        return "In Progress";
+      case 2:
+        return "Completed";
+      case 3:
+        return "Disputed";
+      case 4:
+        return "Canceled";
+      default:
+        return "Unknown";
+    }
+  };
+
+  // Function to handle editing an offer
   const handleEdit = (offer) => {
     setEditingOffer(offer);
   };
 
+  // Function to handle saving an edited offer
   const handleSave = async (updatedOffer) => {
-    try {
-      const web3 = new Web3(window.ethereum);
-      const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
-      setLoading(true);
-      await contract.methods
-        .editEnergyListing(
-          updatedOffer.id,
-          updatedOffer.title,
-          updatedOffer.description,
-          Web3.utils.toWei(updatedOffer.pricePerMwh, 'ether'),
-          Web3.utils.toWei(updatedOffer.energyAvailable, 'ether')
-        )
-        .send({ from: currentAccount });
+    if (!window.ethereum) {
+      alert("Please install MetaMask!");
+      return;
+    }
 
-      // Update UI
+    const web3 = new Web3(window.ethereum);
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    const accounts = await web3.eth.getAccounts();
+
+    const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+
+    try {
+      setLoading(true);
+
+      await contract.methods
+        .editEnergyPost(
+          updatedOffer.id,
+          updatedOffer.energyAvailable,
+          web3.utils.toWei(updatedOffer.pricePerMwh, "ether"),
+          updatedOffer.auctionEnd
+        )
+        .send({
+          from: accounts[0],
+          gas: 500000,
+        });
+
       setMyOffers((prevOffers) =>
-        prevOffers.map((offer) => (offer.id === updatedOffer.id ? updatedOffer : offer))
+        prevOffers.map((offer) =>
+          offer.id === updatedOffer.id ? { ...offer, ...updatedOffer } : offer
+        )
       );
+
+      alert("Offer updated successfully!");
       setEditingOffer(null);
     } catch (error) {
-      console.error('Error updating offer:', error);
+      console.error("Error saving updated offer:", error);
+      alert(`Error: ${error.message || "Transaction failed"}`);
     } finally {
       setLoading(false);
     }
   };
 
+  // Function to handle deleting an offer
   const handleDelete = async (id) => {
     if (!window.ethereum) {
       alert("Please install MetaMask!");
       return;
     }
-  
+
     const web3 = new Web3(window.ethereum);
     await window.ethereum.request({ method: "eth_requestAccounts" });
     const accounts = await web3.eth.getAccounts();
-    
-    if (!accounts.length) {
-      alert("No accounts found. Please connect MetaMask.");
-      return;
-    }
-  
+
     const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
-  
+
     try {
       setLoading(true);
-      console.log("Attempting to delete listing with ID:", id);
-  
-      // Find the listing to check its status
-      const listing = myOffers.find((offer) => offer.id === id);
-      if (!listing) {
-        alert("Listing not found!");
-        return;
-      }
-      console.log("Listing being checked for deletion:", listing);
-      console.log("Listing status:", listing.status);
 
-      // Ensure status is "Open" before deleting
-      if (listing.status !== "Active") {  // Open = 0 as per Solidity Enum
-        alert("Cannot delete a closed, completed, or canceled listing!");
-        return;
-      }
-  
-      // Call deleteEnergyListing on the contract
-      await contract.methods.deleteEnergyListing(id).send({
-        from: accounts[0], 
+      await contract.methods.deleteEnergyPost(id).send({
+        from: accounts[0],
         gas: 500000,
       });
-  
-      // Remove the deleted offer from UI
+
       setMyOffers((prevOffers) => prevOffers.filter((offer) => offer.id !== id));
-  
+
       alert("Offer deleted successfully!");
     } catch (error) {
       console.error("Error deleting offer:", error);
@@ -147,27 +152,51 @@ const MyPosts = () => {
       setLoading(false);
     }
   };
-  
-  
 
+  // Function to handle finalizing a trade
   const handleFinalizeTrade = async (offerId) => {
+    if (!window.ethereum) {
+      alert("Please install MetaMask!");
+      return;
+    }
+
+    const web3 = new Web3(window.ethereum);
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    const accounts = await web3.eth.getAccounts();
+
+    const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+
     try {
-      const web3 = new Web3(window.ethereum);
-      const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
       setLoading(true);
-      await contract.methods.finalizeTrade(offerId).send({ from: currentAccount });
+
+      await contract.methods.finalizeTrade(offerId).send({
+        from: accounts[0],
+        gas: 500000,
+      });
 
       setMyOffers((prevOffers) =>
         prevOffers.map((offer) =>
-          offer.id === offerId ? { ...offer, status: 'Finalized' } : offer
+          offer.id === offerId ? { ...offer, status: "Completed" } : offer
         )
       );
+
+      alert("Trade finalized successfully!");
     } catch (error) {
-      console.error('Error finalizing trade:', error);
+      console.error("Error finalizing trade:", error);
+      alert(`Error: ${error.message || "Transaction failed"}`);
     } finally {
       setLoading(false);
     }
   };
+
+  // Separate active and expired posts
+  const activePosts = myOffers.filter(
+    (offer) => offer.status === "Active" && offer.auctionEnd > Date.now() / 1000
+  );
+
+  const expiredPosts = myOffers.filter(
+    (offer) => offer.status !== "Active" || offer.auctionEnd <= Date.now() / 1000
+  );
 
   return (
     <div className="p-8 space-y-8">
@@ -180,23 +209,45 @@ const MyPosts = () => {
         <EditOffer offer={editingOffer} onSave={handleSave} onCancel={() => setEditingOffer(null)} />
       ) : (
         <div>
-          {myOffers.length === 0 ? (
-            <p>You have not posted anything yet.</p>
+          <h2 className="text-2xl font-bold mb-4">Active Posts</h2>
+          {activePosts.length === 0 ? (
+            <p>No active posts available.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {myOffers.map((offer, index) => (
+              {activePosts.map((offer, index) => (
                 <div key={index} className="bg-card border p-4 rounded-lg mb-4 shadow-md">
-                  <h3 className="text-xl font-bold">{offer.title}</h3>
-                  <p>{offer.description}</p>
+                  <h3 className="text-xl font-bold">Listing #{offer.id}</h3>
                   <p>Price: ${offer.pricePerMwh} / MWh</p>
                   <p>Energy Available: {offer.energyAvailable} kWh</p>
-                  <p>Status: {offer.status}</p>
+                  <p>Auction Ends: {new Date(offer.auctionEnd * 1000).toLocaleString()}</p>
                   <button
                     onClick={() => handleEdit(offer)}
                     className="mt-2 w-full bg-yellow-500 text-white p-2 rounded-md"
                   >
                     Edit
                   </button>
+                  <button
+                    onClick={() => handleDelete(offer.id)}
+                    className="mt-2 w-full bg-red-600 text-white p-2 rounded-md"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <h2 className="text-2xl font-bold mt-8 mb-4">Expired Posts</h2>
+          {expiredPosts.length === 0 ? (
+            <p>No expired posts available.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {expiredPosts.map((offer, index) => (
+                <div key={index} className="bg-card border p-4 rounded-lg mb-4 shadow-md">
+                  <h3 className="text-xl font-bold">Listing #{offer.id}</h3>
+                  <p>Price: ${offer.pricePerMwh} / MWh</p>
+                  <p>Energy Available: {offer.energyAvailable} kWh</p>
+                  <p>Status: {offer.status}</p>
                   <button
                     onClick={() => handleDelete(offer.id)}
                     className="mt-2 w-full bg-red-600 text-white p-2 rounded-md"

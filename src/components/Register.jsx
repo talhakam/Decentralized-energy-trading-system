@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Web3 from 'web3';
 const EnergyTradingABI = require('./EnergyTradingABI.json');
 
-const CONTRACT_ADDRESS = '0x0884b03ef2885919327F0F77Eb36044B549501bf';
+const CONTRACT_ADDRESS = process.env.REACT_APP_SMART_CONTRACT_ADDRESS;
 
 const Register = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
@@ -48,20 +48,20 @@ const Register = ({ setIsAuthenticated }) => {
   };
 
   return (
-    <div style={{ height: '100%' }} className="flex justify-center items-center bg-gradient-to-br to-green-100 px-4 mt-20">
-      <Card className="shadow-2xl border-none w-full max-w-md">
-        <CardContent className="p-8 space-y-6">
-          <h2 className="text-2xl font-semibold text-center text-green-700">Create Your Account</h2>
-          <form onSubmit={registerUser} className="space-y-4">
+    <div style={{ height: '100%' }} className="flex justify-center items-center bg-gradient-to-br from-black-400 to-black-800 px-4 py-20">
+      <Card className="shadow-2xl border-none w-full max-w-xl">
+        <CardContent className="p-10 space-y-8">
+          <h2 className="text-3xl font-semibold text-center text-white">Create Your Account</h2>
+          <form onSubmit={registerUser} className="space-y-6">
             <div>
-              <Label>Role</Label>
+              <Label className="text-white">Role</Label>
               <div className="relative">
                 <UserCheck className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <select
                   name="role"
                   value={role}
                   onChange={handleRoleChange}
-                  className="w-full pl-11 p-2 border rounded-md focus:ring-2 focus:ring-indigo-300 bg-black text-white"
+                  className="w-full pl-11 p-3 border rounded-md focus:ring-2 focus:ring-indigo-300 bg-black text-white"
                   required
                 >
                   <option value="">Select Your Role</option>
@@ -71,12 +71,14 @@ const Register = ({ setIsAuthenticated }) => {
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-900 text-white">
-              {loading ? 'Registering...' : 'Register'}
-            </Button>
+            <div className="flex justify-center">
+              <Button type="submit" className="w-2/3 bg-green-600 hover:bg-green-700 text-white py-5">
+                {loading ? 'Registering...' : 'Register'}
+              </Button>
+            </div>
           </form>
-          <p className="text-center text-sm text-gray-500 mt-4">
-            Already have an account? <a href="/login" className="text-green-600 hover:underline">Login</a>
+          <p className="text-center text-sm text-gray-300 mt-4">
+            Already have an account? <a href="/login" className="text-green-300 hover:underline">Login</a>
           </p>
         </CardContent>
       </Card>

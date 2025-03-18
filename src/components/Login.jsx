@@ -6,6 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import Web3 from 'web3';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+const EnergyTradingABI = require('./EnergyTradingABI.json');
+
+const CONTRACT_ADDRESS = process.env.REACT_APP_SMART_CONTRACT_ADDRESS;
 
 const Login = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
@@ -16,9 +19,14 @@ const Login = ({ setIsAuthenticated }) => {
       toast.error('MetaMask is required to login.');
       return;
     }
-
+  
     setLoading(true);
     try {
+      // Clear any existing session data
+      localStorage.removeItem('token');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userAddress');
+  
       await window.ethereum.request({ method: 'eth_requestAccounts' });
       const web3 = new Web3(window.ethereum);
       const accounts = await web3.eth.getAccounts();
@@ -28,39 +36,56 @@ const Login = ({ setIsAuthenticated }) => {
         setLoading(false);
         return;
       }
-
-      // Simulating successful login
+  
+      // Store the connected account
+      const currentAccount = accounts[0];
+      localStorage.setItem('userAddress', currentAccount);
       localStorage.setItem('token', 'true');
       setIsAuthenticated(true);
-      toast.success('Login successful!');
+  
+      // Verify user is registered by checking role
+      const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+      const userInfo = await contract.methods.users(currentAccount).call();
       
-      setTimeout(() => navigate('/dashboard'), 1000); // Redirect after 1 seconds
-
+      if (Number(userInfo.role) === 0) {
+        toast.error('Account not registered. Please register first.');
+        localStorage.clear();
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+  
+      toast.success('Login successful!');
+      setTimeout(() => navigate('/dashboard'), 1000);
+  
     } catch (error) {
       console.error('Login failed:', error);
       toast.error('Login failed. Please try again.');
+      // Clear all data on error
+      localStorage.clear();
+      setIsAuthenticated(false);
     }
     setLoading(false);
   };
 
   return (
-    <div style={{ height: "100%" }} className="flex justify-center items-center bg-black from-blue-50 to-indigo-100 px-4 mt-16">
+    <div style={{ height: "100%" }} className="flex justify-center items-center bg-gradient-to-br from-black-400 to-black-800 px-4 py-20">
       <ToastContainer position="top-center" autoClose={2000} />
-      <Card className="shadow-2xl border-none w-full max-w-md">
-        <CardContent className="p-8 space-y-8">
-          <h2 className="text-2xl font-semibold text-center text-green-700">Login with MetaMask</h2>
+      <Card className="shadow-2xl border-none w-full max-w-xl">
+        <CardContent className="p-10 space-y-8">
+          <h2 className="text-3xl font-semibold text-center text-white">Login with MetaMask</h2>
           <div className="flex justify-center">
             <Button 
               onClick={handleLogin} 
-              className="w-3/4 flex items-center justify-center bg-green-600 hover:bg-green-900 text-white py-3"
+              className="w-2/3 flex items-center justify-center bg-green-600 hover:bg-green-700 text-white py-4"
               disabled={loading}
             >
               <UserCheck className="mr-2" /> 
               {loading ? 'Connecting...' : 'Connect Wallet'}
             </Button>
           </div>
-          <p className="text-center text-sm text-gray-500">
-            Don't have an account? <a href="/register" className="text-green-700 hover:underline">Register</a>
+          <p className="text-center text-sm text-gray-300">
+            Don't have an account? <a href="/register" className="text-green-300 hover:underline">Register</a>
           </p>
         </CardContent>
       </Card>

@@ -1,11 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
+import EnergyTradingABI from './EnergyTradingABI.json';
 
-const EditOffer = ({ offer, onSave, onCancel, contract, accounts }) => {
+const CONTRACT_ADDRESS = process.env.REACT_APP_SMART_CONTRACT_ADDRESS;
+
+const EditOffer = ({ offer, onSave, onCancel }) => {
   const [energyAmount, setEnergyAmount] = useState(offer.energyAmount);
   const [minPrice, setMinPrice] = useState(offer.minPrice);
   const [auctionDuration, setAuctionDuration] = useState(offer.auctionDuration);
   const [loading, setLoading] = useState(false);
+  const [contract, setContract] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+
+  useEffect(() => {
+    // Initialize Web3 and Contract
+    const initWeb3 = async () => {
+      if (window.ethereum) {
+        const web3 = new Web3(window.ethereum);
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await web3.eth.getAccounts();
+        const contractInstance = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+        setContract(contractInstance);
+        setAccounts(accounts);
+      } else {
+        console.error('MetaMask is required to use this application.');
+      }
+    };
+
+    initWeb3();
+  }, []);
 
   useEffect(() => {
     // Initialize states with offer data
@@ -15,18 +38,31 @@ const EditOffer = ({ offer, onSave, onCancel, contract, accounts }) => {
   }, [offer]);
 
   const handleSave = async () => {
+    if (!contract || accounts.length === 0) {
+      console.error('Contract or accounts not initialized');
+      return;
+    }
+
     try {
       setLoading(true);
-      
+      console.log('Calling editEnergyPost with:', {
+        listingId: offer.id,
+        energyAmount,
+        minPrice,
+        auctionEnd: auctionDuration,
+      });
+
       // Call the smart contract's method to update the offer
       await contract.methods
-        .editEnergyListing(
-          offer.id, // offer ID for identification
+        .editEnergyPost(
+          offer.id, // listing ID for identification
           energyAmount, // updated energy amount
           minPrice, // updated minimum price
           auctionDuration // updated auction duration
         )
         .send({ from: accounts[0] });
+
+      console.log('editEnergyPost called successfully');
 
       // Call the onSave callback to update the local state in MyPosts
       onSave({
@@ -40,6 +76,35 @@ const EditOffer = ({ offer, onSave, onCancel, contract, accounts }) => {
       onCancel(); // Close the form after saving
     } catch (error) {
       console.error('Error updating offer:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!contract || accounts.length === 0) {
+      console.error('Contract or accounts not initialized');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Calling deleteEnergyPost with listingId:', offer.id);
+
+      // Call the smart contract's method to delete the offer
+      await contract.methods
+        .deleteEnergyPost(offer.id)
+        .send({ from: accounts[0] });
+
+      console.log('deleteEnergyPost called successfully');
+
+      // Call the onSave callback to remove the offer from the local state in MyPosts
+      onSave(null, offer.id);
+
+      // Optionally reset the form after deleting
+      onCancel(); // Close the form after deleting
+    } catch (error) {
+      console.error('Error deleting offer:', error);
     } finally {
       setLoading(false);
     }
@@ -101,6 +166,13 @@ const EditOffer = ({ offer, onSave, onCancel, contract, accounts }) => {
             disabled={loading}
           >
             Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            className="w-1/2 bg-red-500 text-white p-2 rounded-md"
+            disabled={loading}
+          >
+            Delete
           </button>
         </div>
       </div>
