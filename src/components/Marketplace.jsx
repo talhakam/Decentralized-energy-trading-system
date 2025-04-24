@@ -21,8 +21,8 @@ const OfferCard = ({ offer, onClick, onBid, userRole }) => {
     <div className="bg-card border p-4 rounded-lg mb-4 shadow-md transition duration-300">
       <div className="flex justify-between items-center">
         <div className="cursor-pointer" onClick={() => onClick(offer)}>
-          <h3 className="text-xl font-bold">Energy: {offer.energyAmount} kWh</h3>
-          <p className="font-semibold">Price: {offer.minPrice} ETH</p>
+          <h3 className="text-xl font-bold">Energy: {Number(offer.energyAmount).toFixed(2)} kWh</h3> {/* Ensure energyAmount is a number */}
+          <p className="font-semibold">Min Price: {Number(offer.minPrice).toFixed(4)} ETH</p> {/* Ensure minPrice is a number */}
           <p className="font-semibold">Duration Left: {offer.duration} mins</p>
         </div>
         {userRole === Role.Consumer && (
@@ -197,7 +197,7 @@ const PostOffer = ({ onPost }) => {
       <h2 className="text-xl font-bold">Post a New Energy Offer</h2>
       <input
         type="number"
-        placeholder="Price per MWh (ETH)"
+        placeholder="Minimum Price (ETH)"
         value={pricePerMWh}
         onChange={(e) => setPricePerMWh(e.target.value)}
         className="w-full p-2 border rounded-md focus:ring-2 focus:ring-green-600"
@@ -284,14 +284,23 @@ const Marketplace = ({ userRole }) => {
       const activeOffers = await contract.methods.getAllActiveOffers().call();
       console.log("Active Offers from Contract:", activeOffers); // Debugging log
   
-      // Format the active offers for the frontend
-      const formattedOffers = activeOffers.map((offer) => ({
+      const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+
+    // Format and filter the active offers for the frontend
+    const formattedOffers = activeOffers
+      .map((offer) => ({
         id: Number(offer.id),
         prosumer: offer.prosumer,
-        energyAmount: web3.utils.fromWei(String(offer.energyAmount), "ether"),
-        minPrice: web3.utils.fromWei(String(offer.minPrice), "ether"),
-        duration: Math.max(0, Math.floor(Number(offer.auctionEnd) - Date.now() / 1000) / 60), // Convert seconds to minutes
-      }));
+        energyAmount: Number(offer.energyAmount), // Energy in kWh (already in correct unit)
+        minPrice: Number(web3.utils.fromWei(String(offer.minPrice), "ether")), // Total price in ETH
+        duration: Math.max(0, Math.floor(Number(offer.auctionEnd) - currentTime) / 60), // Convert seconds to minutes
+        status: Number(offer.status),
+        auctionEnd: Number(offer.auctionEnd)
+      }))
+      .filter(offer => 
+        offer.status === 0 && // Status is "Open"
+        offer.auctionEnd > currentTime // Auction hasn't ended
+      );
       console.log("Formatted Offers:", formattedOffers); // Debugging log
   
       setOffers(formattedOffers);

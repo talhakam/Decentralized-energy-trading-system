@@ -62,7 +62,7 @@ const Navbar = ({ userRole, isAuthenticated, setIsAuthenticated }) => {
           {isAuthenticated && (
             <>
               <div className="hidden md:flex space-x-6">
-                <Link to="/">
+                <Link to="/dashboard"> {/* Fix the link to point to /dashboard */}
                   <NavLink icon={<Home size={18} />} text="Dashboard" />
                 </Link>
                 <Link to="/marketplace">
@@ -134,7 +134,7 @@ const Navbar = ({ userRole, isAuthenticated, setIsAuthenticated }) => {
       {isMenuOpen && (
         <div className="md:hidden absolute top-full left-0 w-full bg-gradient-to-r from-blue-800 to-indigo-900">
           <div className="flex flex-col space-y-2 p-4">
-            <Link to="/">
+            <Link to="/dashboard"> {/* Fix the link to point to /dashboard */}
               <MobileNavLink icon={<Home size={18} />} text="Dashboard" />
             </Link>
             <Link to="/marketplace">

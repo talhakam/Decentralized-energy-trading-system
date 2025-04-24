@@ -9,6 +9,7 @@ const MyPosts = () => {
   const [myOffers, setMyOffers] = useState([]);
   const [editingOffer, setEditingOffer] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [viewingOffer, setViewingOffer] = useState(null); // State for viewing completed offer details
 
   useEffect(() => {
     const fetchMyPosts = async () => {
@@ -31,9 +32,12 @@ const MyPosts = () => {
         const formattedPosts = myPosts.map((post) => ({
           id: Number(post.id),
           prosumer: post.prosumer,
-          energyAvailable: Number(post.energyAmount),
-          pricePerMwh: web3.utils.fromWei(post.minPrice.toString(), "ether"),
+          energyAvailable: Number(post.energyAmount), // Use energyAmount directly as it is already in kWh
+          pricePerMwh: Number(web3.utils.fromWei(post.minPrice.toString(), "ether")), // Price in ETH
           auctionEnd: Number(post.auctionEnd),
+          highestBid: post.highestBid > 0 
+            ? Number(web3.utils.fromWei(post.highestBid.toString(), "ether")).toFixed(4) 
+            : "None", // Include highest bid or "None" if no bids
           status: mapTradeStatus(post.status, Number(post.auctionEnd)), // Pass auctionEnd to mapTradeStatus
         }));
 
@@ -189,6 +193,113 @@ const MyPosts = () => {
     }
   };
 
+  // Function to fetch details of a completed post
+  const handleViewDetails = async (offerId) => {
+    if (!window.ethereum) {
+      alert("Please install MetaMask!");
+      return;
+    }
+  
+    const web3 = new Web3(window.ethereum);
+    const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+  
+    try {
+      const listing = await contract.methods.listings(offerId).call();
+      setViewingOffer({
+        id: Number(listing.id),
+        prosumer: listing.prosumer,
+        buyer: listing.highestBidder,
+        energyAmount: Number(listing.energyAmount), // Use energyAmount directly as it is already in kWh
+        minPrice: Number(web3.utils.fromWei(listing.minPrice.toString(), "ether")), // Price in ETH
+        status: Number(listing.status),
+        bidAmount: Number(web3.utils.fromWei(listing.highestBid.toString(), "ether")), // Price in ETH
+        secondHighestBidder: listing.secondHighestBidder,
+        secondHighestBid: Number(web3.utils.fromWei(listing.secondHighestBid.toString(), "ether")), // Price in ETH
+        auctionEnd: Number(listing.auctionEnd),
+        isScheduled: listing.isScheduled
+      });
+    } catch (error) {
+      console.error("Error fetching completed post details:", error);
+      alert("Failed to fetch post details.");
+    }
+  };
+
+  // Modal component to display completed post details
+  // Update the CompletedPostModal component
+const CompletedPostModal = ({ offer, onClose }) => {
+  if (!offer) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50 p-4">
+      <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 w-full max-w-md max-h-[80vh] flex flex-col">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold mb-4 text-white">Completed Trade Details</h2>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-6">
+          <div className="space-y-4 pb-6">
+            <div className="border-b border-gray-700 pb-4">
+              <p className="text-gray-400 text-sm">Listing ID</p>
+              <p className="text-white font-semibold">#{offer.id}</p>
+            </div>
+
+            <div className="border-b border-gray-700 pb-4">
+              <p className="text-gray-400 text-sm">Seller Address</p>
+              <p className="text-white font-mono text-sm break-all">{offer.prosumer}</p>
+            </div>
+
+            <div className="border-b border-gray-700 pb-4">
+              <p className="text-gray-400 text-sm">Buyer Address</p>
+              <p className="text-white font-mono text-sm break-all">{offer.buyer}</p>
+            </div>
+
+            <div className="border-b border-gray-700 pb-4">
+              <p className="text-gray-400 text-sm">Energy Amount</p>
+              <p className="text-white font-semibold">{Number(offer.energyAmount).toFixed(2)} kWh</p>
+            </div>
+
+            <div className="border-b border-gray-700 pb-4">
+              <p className="text-gray-400 text-sm">Minimum Price</p>
+              <p className="text-white font-semibold">{Number(offer.minPrice).toFixed(4)} ETH</p>
+            </div>
+
+            <div className="border-b border-gray-700 pb-4">
+              <p className="text-gray-400 text-sm">Winning Bid</p>
+              <p className="text-white font-semibold">{Number(offer.bidAmount).toFixed(4)} ETH</p>
+            </div>
+
+            <div className="border-b border-gray-700 pb-4">
+              <p className="text-gray-400 text-sm">Second Highest Bidder</p>
+              <p className="text-white font-mono text-sm break-all">{offer.secondHighestBidder}</p>
+            </div>
+
+            <div className="border-b border-gray-700 pb-4">
+              <p className="text-gray-400 text-sm">Second Highest Bid</p>
+              <p className="text-white font-semibold">{Number(offer.secondHighestBid).toFixed(4)} ETH</p>
+            </div>
+
+            <div className="pb-4">
+              <p className="text-gray-400 text-sm">Completion Date</p>
+              <p className="text-white font-semibold">
+                {new Date(offer.auctionEnd * 1000).toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-700">
+          <button
+            onClick={onClose}
+            className="w-full bg-red-600 text-white p-3 rounded-md hover:bg-red-700 transition duration-300"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
   // Separate active and expired posts
   const activePosts = myOffers.filter(
     (offer) => offer.status === "Active" && offer.auctionEnd > Date.now() / 1000
@@ -217,8 +328,8 @@ const MyPosts = () => {
               {activePosts.map((offer, index) => (
                 <div key={index} className="bg-card border p-4 rounded-lg mb-4 shadow-md">
                   <h3 className="text-xl font-bold">Listing #{offer.id}</h3>
-                  <p>Price: ${offer.pricePerMwh} / MWh</p>
-                  <p>Energy Available: {offer.energyAvailable} kWh</p>
+                  <p>Price: {Number(offer.pricePerMwh).toFixed(4)} ETH</p> {/* Ensure pricePerMwh is a number */}
+                  <p>Energy Available: {Number(offer.energyAvailable).toFixed(2)} kWh</p> {/* Ensure energyAvailable is a number */}
                   <p>Auction Ends: {new Date(offer.auctionEnd * 1000).toLocaleString()}</p>
                   <button
                     onClick={() => handleEdit(offer)}
@@ -245,25 +356,40 @@ const MyPosts = () => {
               {expiredPosts.map((offer, index) => (
                 <div key={index} className="bg-card border p-4 rounded-lg mb-4 shadow-md">
                   <h3 className="text-xl font-bold">Listing #{offer.id}</h3>
-                  <p>Price: ${offer.pricePerMwh} / MWh</p>
+                  <p>Price: {offer.pricePerMwh} ETH / MWh</p>
                   <p>Energy Available: {offer.energyAvailable} kWh</p>
+                  <p>Highest Bid: {offer.highestBid} ETH</p> {/* Display highest bid */}
                   <p>Status: {offer.status}</p>
-                  <button
-                    onClick={() => handleDelete(offer.id)}
-                    className="mt-2 w-full bg-red-600 text-white p-2 rounded-md"
-                  >
-                    Delete
-                  </button>
-                  <button
-                    onClick={() => handleFinalizeTrade(offer.id)}
-                    className="mt-2 w-full bg-green-500 text-white p-2 rounded-md"
-                  >
-                    Finalize Trade
-                  </button>
+                  {offer.status === "Completed" ? (
+                    <div className ="flex justify-center">
+                    <button
+                      onClick={() => handleViewDetails(offer.id)}
+                      className="mt-6 w-2/3 bg-green-600 text-white p-3 rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      View
+                    </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => handleDelete(offer.id)}
+                        className="mt-2 w-full bg-red-600 text-white p-2 rounded-md hover:bg-red-700 transition-colors"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => handleFinalizeTrade(offer.id)}
+                        className="mt-2 w-full bg-green-600 text-white p-2 rounded-md hover:bg-green-700 transition-colors"
+                      >
+                        Finalize Trade
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
           )}
+          <CompletedPostModal offer={viewingOffer} onClose={() => setViewingOffer(null)} />
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card';
 import axios from 'axios';
-import RetentionHeatmap from './RetentionHeatmap';
+//import RetentionHeatmap from './RetentionHeatmap';
 
 const Dashboard = ({userRole}) => {
   const [currentEnergyStored, setCurrentEnergyStored] = useState(0);
@@ -17,6 +17,7 @@ const Dashboard = ({userRole}) => {
         }
       } catch (error) {
         console.error('Error fetching energy data:', error);
+        setCurrentEnergyStored(0); // Fallback value
       }
     };
 

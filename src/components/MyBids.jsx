@@ -31,75 +31,46 @@ const MyBids = () => {
         return;
       }
 
+      const web3 = new Web3(window.ethereum);
+      const accounts = await web3.eth.getAccounts();
+      const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+
       try {
-        const web3 = new Web3(window.ethereum);
-        const accounts = await web3.eth.getAccounts();
-        const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+        console.log("Fetching user bids for account:", accounts[0]); // Debug log
 
-        // Get all bids for the current user
-        const userBidsIndexes = await contract.methods.userBids(accounts[0], 0).call();
-        console.log('User bids indexes:', userBidsIndexes);
+        // Call the getMyBids function from the smart contract
+        const userBids = await contract.methods.getMyBids(accounts[0]).call();
+        console.log("User bids from contract:", userBids); // Debug log
 
-        // Get all bid IDs
-        let validBidIds = [];
-        let index = 0;
-        
-        while (true) {
-          try {
-            const bidId = await contract.methods.userBids(accounts[0], index).call();
-            if (bidId && Number(bidId) > 0) {
-              validBidIds.push(Number(bidId));
-            }
-            index++;
-          } catch (error) {
-            // Break the loop when we've reached the end of the array
-            break;
-          }
-        }
-
-        console.log('Valid bid IDs:', validBidIds);
-
-        if (validBidIds.length === 0) {
+        if (!userBids || userBids.length === 0) {
+          console.log("No bids found for the user.");
           setBids([]);
-          setLoading(false);
           return;
         }
 
-        // Fetch details for each bid
-        const bidDetails = await Promise.all(
-          validBidIds.map(async (id) => {
-            try {
-              const listing = await contract.methods.listings(id).call();
-              console.log(`Listing ${id} details:`, listing);
+        // Format the bids for the frontend
+        const formattedBids = userBids.map((bid) => ({
+          id: Number(bid.id),
+          prosumer: bid.prosumer,
+          energyAmount: parseFloat(bid.energyAmount).toFixed(2), // Energy in kWh (no conversion)
+          minPrice: parseFloat(web3.utils.fromWei(bid.minPrice.toString(), "ether")).toFixed(4), // Price in ETH
+          highestBid: parseFloat(web3.utils.fromWei(bid.highestBid.toString(), "ether")).toFixed(4), // Highest bid in ETH
+          userBid:
+            bid.highestBidder.toLowerCase() === accounts[0].toLowerCase()
+              ? parseFloat(web3.utils.fromWei(bid.highestBid.toString(), "ether")).toFixed(4)
+              : bid.secondHighestBidder.toLowerCase() === accounts[0].toLowerCase()
+              ? parseFloat(web3.utils.fromWei(bid.secondHighestBid.toString(), "ether")).toFixed(4)
+              : "0.0000", // User's actual bid
+          status: Number(bid.status),
+          auctionEnd: Number(bid.auctionEnd),
+          isWinning: bid.highestBidder.toLowerCase() === accounts[0].toLowerCase(),
+        }));
 
-              return {
-                id: id,
-                prosumer: listing.prosumer,
-                energyAmount: web3.utils.fromWei(listing.energyAmount.toString(), 'ether'),
-                minPrice: web3.utils.fromWei(listing.minPrice.toString(), 'ether'),
-                highestBid: web3.utils.fromWei(listing.highestBid.toString(), 'ether'),
-                status: Number(listing.status),
-                auctionEnd: listing.auctionEnd,
-                isWinning: listing.highestBidder.toLowerCase() === accounts[0].toLowerCase(),
-                secondHighestBid: web3.utils.fromWei(listing.secondHighestBid.toString(), 'ether')
-              };
-            } catch (error) {
-              console.error(`Error fetching listing ${id}:`, error);
-              return null;
-            }
-          })
-        );
-
-        console.log('Fetched bid details:', bidDetails);
-        
-        // Filter out null values and sort by ID
-        const validBids = bidDetails
-          .filter(bid => bid !== null)
-          .sort((a, b) => b.id - a.id);
-
-        setBids(validBids);
+        console.log("Formatted bids:", formattedBids); // Debug log
+        setBids(formattedBids);
       } catch (error) {
-        console.error('Error fetching bids:', error);
+        console.error("Error fetching bids:", error);
+        alert("Failed to fetch bids. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -111,11 +82,6 @@ const MyBids = () => {
     const interval = setInterval(fetchBids, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  // Add debug logging for bids state changes
-  useEffect(() => {
-    console.log('Current bids state:', bids);
-  }, [bids]);
 
   const BidCard = ({ bid }) => (
     <div className="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
@@ -132,15 +98,19 @@ const MyBids = () => {
         </p>
         <p className="text-gray-300">
           <span className="font-semibold text-gray-200">Energy Amount:</span>{' '}
-          {Number(bid.energyAmount).toFixed(2)} kWh
+          {bid.energyAmount} kWh {/* Ensure energyAmount is properly formatted */}
         </p>
         <p className="text-gray-300">
           <span className="font-semibold text-gray-200">Minimum Price:</span>{' '}
-          {Number(bid.minPrice).toFixed(4)} ETH
+          {bid.minPrice} ETH {/* Ensure minPrice is properly formatted */}
+        </p>
+        <p className="text-gray-300">
+          <span className="font-semibold text-gray-200">Highest Bid:</span>{' '}
+          {bid.highestBid} ETH {/* Ensure highestBid is properly formatted */}
         </p>
         <p className="text-gray-300">
           <span className="font-semibold text-gray-200">Your Bid:</span>{' '}
-          {Number(bid.highestBid).toFixed(4)} ETH
+          {bid.userBid > 0 ? `${bid.userBid} ETH` : "No bid placed"} {/* Display user's actual bid */}
         </p>
         <p className="text-gray-300">
           <span className="font-semibold text-gray-200">Status:</span> 
