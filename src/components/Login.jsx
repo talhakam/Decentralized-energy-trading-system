@@ -26,6 +26,7 @@ const Login = ({ setIsAuthenticated }) => {
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
       localStorage.removeItem('userAddress');
+      localStorage.removeItem('hardwareId');
   
       await window.ethereum.request({ method: 'eth_requestAccounts' });
       const web3 = new Web3(window.ethereum);
@@ -54,6 +55,15 @@ const Login = ({ setIsAuthenticated }) => {
         setLoading(false);
         return;
       }
+
+      // Get hardware ID from blockchain
+      const hardwareId = await contract.methods.getUserHardwareId(currentAccount).call();
+      
+      // Store user role and hardware ID in localStorage
+      localStorage.setItem('userRole', userInfo.role);
+      localStorage.setItem('hardwareId', hardwareId);
+      
+      console.log('User logged in with hardware ID:', hardwareId);
   
       toast.success('Login successful!');
       setTimeout(() => navigate('/dashboard'), 1000);

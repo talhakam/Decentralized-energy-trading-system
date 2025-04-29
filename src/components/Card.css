@@ -1,0 +1,129 @@
+/* Card component styles */
+.card {
+    background-color: #1e1e1e;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    border: 1px solid #333;
+    border-top-width: 4px;
+    height: 85%;
+    width: 275px;
+  }
+  
+  .card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+  }
+  
+  /* Card header */
+  .card-header {
+    padding: 1.5rem 1.5rem 0rem 1.5rem;
+  }
+  
+  .card-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #a0a0a0;
+    margin: 0;
+  }
+  
+  /* Card content */
+  .card-content {
+    padding: 0rem 1.5rem 1.5rem 1.5rem;
+  }
+  
+  .card-value-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  
+  /* Value color variants */
+  .card-value-blue {
+    color: #60a5fa;
+  }
+  
+  .card-value-green {
+    color: #34d399;
+  }
+  
+  .card-value-purple {
+    color: #a78bfa;
+  }
+  
+  .card-value-amber {
+    color: #fbbf24;
+  }
+  
+  .card-value-red {
+    color: #f87171;
+  }
+  
+  /* Border color variants */
+  .card-border-blue {
+    border-top-color: #3B82F6;
+  }
+  
+  .card-border-green {
+    border-top-color: #10B981;
+  }
+  
+  .card-border-purple {
+    border-top-color: #8B5CF6;
+  }
+  
+  .card-border-amber {
+    border-top-color: #F59E0B;
+  }
+  
+  .card-border-red {
+    border-top-color: #EF4444;
+  }
+  
+  /* Trend indicator */
+  .card-trend {
+    display: flex;
+    align-items: center;
+    margin-left: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  
+  .trend-up {
+    color: #f87171;
+  }
+  
+  .trend-down {
+    color: #34d399;
+  }
+  
+  .trend-stable {
+    color: #a0a0a0;
+  }
+  
+  .trend-percentage {
+    margin-left: 0.25rem;
+  }
+  
+  /* Status messages */
+  .card-status {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .card-loading {
+    color: #a0a0a0;
+  }
+  
+  .card-error {
+    color: #f87171;
+  }

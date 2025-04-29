@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
 import EnergyTradingABI from './EnergyTradingABI.json';
+import { fromBlockchainEnergy } from '../utils/energyUtils';
+import { getDatabase, ref, onValue, set } from 'firebase/database';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const CONTRACT_ADDRESS = process.env.REACT_APP_SMART_CONTRACT_ADDRESS;
 
@@ -49,22 +53,30 @@ const MyBids = () => {
         }
 
         // Format the bids for the frontend
-        const formattedBids = userBids.map((bid) => ({
-          id: Number(bid.id),
-          prosumer: bid.prosumer,
-          energyAmount: parseFloat(bid.energyAmount).toFixed(2), // Energy in kWh (no conversion)
-          minPrice: parseFloat(web3.utils.fromWei(bid.minPrice.toString(), "ether")).toFixed(4), // Price in ETH
-          highestBid: parseFloat(web3.utils.fromWei(bid.highestBid.toString(), "ether")).toFixed(4), // Highest bid in ETH
-          userBid:
-            bid.highestBidder.toLowerCase() === accounts[0].toLowerCase()
-              ? parseFloat(web3.utils.fromWei(bid.highestBid.toString(), "ether")).toFixed(4)
-              : bid.secondHighestBidder.toLowerCase() === accounts[0].toLowerCase()
-              ? parseFloat(web3.utils.fromWei(bid.secondHighestBid.toString(), "ether")).toFixed(4)
-              : "0.0000", // User's actual bid
-          status: Number(bid.status),
-          auctionEnd: Number(bid.auctionEnd),
-          isWinning: bid.highestBidder.toLowerCase() === accounts[0].toLowerCase(),
-        }));
+        const formattedBids = userBids.map((bid) => {
+          // Convert the energy amount from blockchain format to display format
+          const rawEnergy = Number(bid.energyAmount);
+          const displayEnergy = fromBlockchainEnergy(rawEnergy);
+          
+          console.log(`Converting blockchain energy ${rawEnergy} to display value: ${displayEnergy} Wh`);
+          
+          return {
+            id: Number(bid.id),
+            prosumer: bid.prosumer,
+            energyAmount: displayEnergy, // Converted from blockchain format
+            minPrice: parseFloat(web3.utils.fromWei(bid.minPrice.toString(), "ether")).toFixed(4), // Price in ETH
+            highestBid: parseFloat(web3.utils.fromWei(bid.highestBid.toString(), "ether")).toFixed(4), // Highest bid in ETH
+            userBid:
+              bid.highestBidder.toLowerCase() === accounts[0].toLowerCase()
+                ? parseFloat(web3.utils.fromWei(bid.highestBid.toString(), "ether")).toFixed(4)
+                : bid.secondHighestBidder.toLowerCase() === accounts[0].toLowerCase()
+                ? parseFloat(web3.utils.fromWei(bid.secondHighestBid.toString(), "ether")).toFixed(4)
+                : "0.0000", // User's actual bid
+            status: Number(bid.status),
+            auctionEnd: Number(bid.auctionEnd),
+            isWinning: bid.highestBidder.toLowerCase() === accounts[0].toLowerCase(),
+          };
+        });
 
         console.log("Formatted bids:", formattedBids); // Debug log
         setBids(formattedBids);
@@ -83,6 +95,91 @@ const MyBids = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    // Listen for won auctions
+    const listenForWonAuctions = async () => {
+      if (!window.ethereum) return;
+
+      try {
+        const web3 = new Web3(window.ethereum);
+        const accounts = await web3.eth.getAccounts();
+        const currentAccount = accounts[0];
+        
+        // Get user's hardware ID
+        const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+        const hardwareId = await contract.methods.getUserHardwareId(currentAccount).call();
+        
+        // Listen for energy purchases in Firebase
+        const db = getDatabase();
+        const energyBoughtRef = ref(db, `Consumer/${hardwareId}/EnergyBought`);
+        
+        onValue(energyBoughtRef, (snapshot) => {
+          const newEnergyAmount = snapshot.val();
+          if (newEnergyAmount) {
+            toast.success(
+              `🎉 Congratulations! You've won an energy auction! Check your dashboard for details.`,
+              {
+                position: "top-right",
+                autoClose: 10000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+              }
+            );
+          }
+        });
+      } catch (error) {
+        console.error('Error setting up auction notifications:', error);
+      }
+    };
+
+    listenForWonAuctions();
+  }, []);
+
+  useEffect(() => {
+    const listenForNotifications = async () => {
+      if (!window.ethereum) return;
+
+      try {
+        const web3 = new Web3(window.ethereum);
+        const accounts = await web3.eth.getAccounts();
+        const contract = new web3.eth.Contract(EnergyTradingABI.abi, CONTRACT_ADDRESS);
+        const hardwareId = await contract.methods.getUserHardwareId(accounts[0]).call();
+        
+        const db = getDatabase();
+        const notificationsRef = ref(db, `${hardwareId}/Consumer/Notifications`);
+        
+        onValue(notificationsRef, (snapshot) => {
+          const notifications = snapshot.val();
+          if (notifications) {
+            Object.entries(notifications).forEach(([id, notification]) => {
+              if (!notification.read) {
+                toast.success(
+                  `🎉 ${notification.message} - ${notification.energyAmount} Wh`,
+                  {
+                    position: "top-right",
+                    autoClose: 10000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                  }
+                );
+                // Mark notification as read
+                set(ref(db, `${hardwareId}/Consumer/Notifications/${id}/read`), true);
+              }
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error setting up notifications:', error);
+      }
+    };
+
+    listenForNotifications();
+  }, []);
+
   const BidCard = ({ bid }) => (
     <div className="bg-gray-800 p-6 rounded-lg shadow-md border border-gray-700">
       <h3 className="text-xl font-bold text-white mb-4">Listing #{bid.id}</h3>
@@ -98,15 +195,15 @@ const MyBids = () => {
         </p>
         <p className="text-gray-300">
           <span className="font-semibold text-gray-200">Energy Amount:</span>{' '}
-          {bid.energyAmount} kWh {/* Ensure energyAmount is properly formatted */}
+          {Number(bid.energyAmount).toFixed(2)} Wh {/* Display with 2 decimal places */}
         </p>
         <p className="text-gray-300">
           <span className="font-semibold text-gray-200">Minimum Price:</span>{' '}
-          {bid.minPrice} ETH {/* Ensure minPrice is properly formatted */}
+          {bid.minPrice} ETH {/* Already formatted in the mapping */}
         </p>
         <p className="text-gray-300">
           <span className="font-semibold text-gray-200">Highest Bid:</span>{' '}
-          {bid.highestBid} ETH {/* Ensure highestBid is properly formatted */}
+          {bid.highestBid} ETH {/* Already formatted in the mapping */}
         </p>
         <p className="text-gray-300">
           <span className="font-semibold text-gray-200">Your Bid:</span>{' '}

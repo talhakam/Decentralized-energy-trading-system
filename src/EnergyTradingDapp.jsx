@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Web3 from 'web3';
 import { Button } from './components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
-import { Input } from './components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+// import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
+// import { Input } from './components/ui/input';
+// import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 
 // Replace with your actual contract ABI and address
 const CONTRACT_ADDRESS = '0x..YOUR_DEPLOYED_CONTRACT_ADDRESS...';

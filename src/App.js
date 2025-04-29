@@ -10,6 +10,7 @@ import Marketplace from "./components/Marketplace";
 import MyPosts from "./components/MyPosts";
 import MyBids from "./components/MyBids";
 import Web3 from 'web3';
+import queueMonitor from './utils/queueMonitor'; // Import the queue monitor
 const EnergyTradingABI = require('./components/EnergyTradingABI.json');
 
 const CONTRACT_ADDRESS = process.env.REACT_APP_SMART_CONTRACT_ADDRESS;
@@ -59,6 +60,11 @@ function App() {
         setUserRole(roleNumber);
         localStorage.setItem('userRole', roleNumber.toString());
         localStorage.setItem('userAddress', currentAccount);
+
+        // Initialize queue monitor if user is a prosumer
+        if (roleNumber === Role.Prosumer) {
+          await queueMonitor.initialize();
+        }
       } catch (error) {
         console.error("Error fetching user role:", error);
         setUserRole(null);
@@ -74,6 +80,10 @@ function App() {
   useEffect(() => {
     const handleAccountsChanged = () => {
       console.log('MetaMask account changed');
+      
+      // Reset queue monitor when account changes
+      queueMonitor.reset();
+      
       localStorage.removeItem('token');
       localStorage.removeItem('userRole');
       localStorage.removeItem('userAddress');
@@ -92,6 +102,24 @@ function App() {
     };
   }, []);
 
+  // Initialize queue monitor when app loads if user is already authenticated as prosumer
+  useEffect(() => {
+    const initQueueMonitor = async () => {
+      if (isAuthenticated && userRole === Role.Prosumer) {
+        console.log('Initializing queue monitor for prosumer');
+        await queueMonitor.initialize();
+      }
+    };
+    
+    if (!loading) {
+      initQueueMonitor();
+    }
+    
+    // Cleanup on component unmount
+    return () => {
+      queueMonitor.reset();
+    };
+  }, [isAuthenticated, userRole, loading]);
 
   if (loading) {
     return <div>Loading...</div>; // Add proper loading component
@@ -131,7 +159,7 @@ function App() {
               <Navigate to="/login" />
             } />
 
-{
+            {
               userRole === Role.Prosumer && (
                 <Route path="/my-posts" element={
                   <MyPosts />
